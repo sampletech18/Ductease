@@ -20,3 +20,5 @@ Flask-WTF==1.2.1
 
 # If using Flask-Migrate for DB upgrades (optional)
 Flask-Migrate==4.0.5
+
+gunicorn
