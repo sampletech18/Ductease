@@ -33,8 +33,9 @@ def dashboard():
 # ========== NEW PROJECT ==========
 @app.route('/new_project', methods=['GET', 'POST'])
 def new_project():
+    vendors = Vendor.query.all()
+
     if request.method == 'POST':
-        enquiry_id = generate_enquiry_id()
         name = request.form['name']
         location = request.form['location']
         start_date = request.form['start_date']
@@ -46,14 +47,20 @@ def new_project():
         project_incharge = request.form['project_incharge']
         email = request.form['email']
         phone = request.form['phone']
-        
-        drawing_file = request.files['source_drawing']
-        drawing_filename = None
-        if drawing_file and drawing_file.filename:
-            drawing_filename = f"{datetime.utcnow().timestamp()}_{drawing_file.filename}"
-            drawing_file.save(os.path.join(app.config['UPLOAD_FOLDER'], drawing_filename))
 
-        new_project = Project(
+        file = request.files.get('source_drawing')
+        filename = None
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(os.path.join('static/uploads', filename))
+
+        # Generate unique enquiry_id like VE/TN/2025/E001
+        current_year = datetime.now().year
+        last_project = Project.query.order_by(Project.id.desc()).first()
+        sequence = f"E{(last_project.id + 1) if last_project else 1:03}"
+        enquiry_id = f"VE/TN/{current_year}/{sequence}"
+
+        project = Project(
             enquiry_id=enquiry_id,
             name=name,
             location=location,
@@ -66,16 +73,15 @@ def new_project():
             project_incharge=project_incharge,
             email=email,
             phone=phone,
-            source_drawing=drawing_filename
+            drawing_filename=filename,
         )
-        db.session.add(new_project)
+        db.session.add(project)
         db.session.commit()
-        flash('New project created successfully!', 'success')
-        return redirect(url_for('dashboard'))
+        flash("Project created successfully!", "success")
+        return redirect(url_for('new_project'))
 
-    vendors = Vendor.query.all()
-    return render_template('new_project.html', vendors=vendors)
-
+    projects = Project.query.order_by(Project.id.desc()).all()
+    return render_template('new_project.html', vendors=vendors, projects=projects)
 
 @app.route('/get_vendor_details/<int:vendor_id>')
 def get_vendor_details(vendor_id):
