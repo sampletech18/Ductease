@@ -13,8 +13,10 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = User.query.filter_by(username=request.form["username"]).first()
-        if user and user.password == request.form["password"]:
+        username = request.form["username"]
+        password = request.form["password"]
+        user = User.query.filter_by(username=username).first()
+        if user and user.password == password:
             session["user_id"] = user.id
             return redirect("/dashboard")
         flash("Invalid credentials")
@@ -44,8 +46,8 @@ def new_project():
         drawing_file = request.files["drawing"]
 
         filename = secure_filename(drawing_file.filename)
-        path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        drawing_file.save(path)
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        drawing_file.save(filepath)
 
         new_project = Project(
             enquiry_id=enquiry_id,
@@ -63,6 +65,9 @@ def new_project():
 # ========== MEASUREMENT SHEET ==========
 @app.route("/measurement_sheet/<int:project_id>", methods=["GET", "POST"])
 def measurement_sheet(project_id):
+    if "user_id" not in session:
+        return redirect("/")
+
     project = Project.query.get_or_404(project_id)
 
     if request.method == "POST":
@@ -99,47 +104,19 @@ def measurement_sheet(project_id):
     entries = MeasurementEntry.query.filter_by(project_id=project.id).all()
     return render_template("measurement_sheet.html", project=project, entries=entries)
 
-
+# ========== REGISTER VENDOR ==========
 @app.route("/register_vendor", methods=["GET", "POST"])
 def register_vendor():
+    if "user_id" not in session:
+        return redirect("/")
+
     if request.method == "POST":
-        # Vendor main info
         name = request.form["vendor_name"]
-        gst = request.form["gst_number"]
-        pan = request.form["pan_number"]
+        gst_number = request.form["gst_number"]
         address = request.form["address"]
 
-        vendor = Vendor(name=name, gst_number=gst, pan_number=pan, address=address)
+        vendor = Vendor(name=name, gst_number=gst_number, address=address)
         db.session.add(vendor)
-        db.session.flush()  # Get vendor.id before committing
-
-        # Contacts (multiple)
-        names = request.form.getlist("contact_name[]")
-        designations = request.form.getlist("contact_designation[]")
-        emails = request.form.getlist("contact_email[]")
-        phones = request.form.getlist("contact_phone[]")
-
-        for i in range(len(names)):
-            contact = VendorContact(
-                vendor_id=vendor.id,
-                name=names[i],
-                designation=designations[i],
-                email=emails[i],
-                phone=phones[i]
-            )
-            db.session.add(contact)
-
-        # Bank details
-        bank = VendorBank(
-            vendor_id=vendor.id,
-            account_holder=request.form["account_holder"],
-            bank_name=request.form["bank_name"],
-            branch=request.form["branch"],
-            ifsc=request.form["ifsc"],
-            account_number=request.form["account_number"]
-        )
-        db.session.add(bank)
-
         db.session.commit()
         flash("Vendor registered successfully.")
         return redirect("/register_vendor")
@@ -157,3 +134,11 @@ def generate_enquiry_id():
     last_project = Project.query.order_by(Project.id.desc()).first()
     next_number = (last_project.id + 1) if last_project else 1
     return f"VE/TN/2526/E{str(next_number).zfill(3)}"
+
+# ========== CREATE DUMMY USER (Optional) ==========
+@app.before_first_request
+def create_dummy_admin():
+    if not User.query.filter_by(username="admin").first():
+        admin = User(username="admin", password="admin123")
+        db.session.add(admin)
+        db.session.commit()
