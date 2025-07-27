@@ -2,17 +2,42 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from app import db
 
+# ===== USER LOGIN =====
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
 
+# ===== VENDOR MASTER =====
 class Vendor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     gst_number = db.Column(db.String(20))
+    pan_number = db.Column(db.String(20))
     address = db.Column(db.String(255))
 
+    contacts = db.relationship("VendorContact", backref="vendor", cascade="all, delete-orphan")
+    bank = db.relationship("VendorBank", uselist=False, backref="vendor", cascade="all, delete-orphan")
+    projects = db.relationship("Project", backref="vendor", cascade="all, delete-orphan")
+
+class VendorContact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey("vendor.id"))
+    name = db.Column(db.String(100))
+    designation = db.Column(db.String(100))
+    email = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+
+class VendorBank(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey("vendor.id"))
+    account_holder = db.Column(db.String(100))
+    bank_name = db.Column(db.String(100))
+    branch = db.Column(db.String(100))
+    ifsc = db.Column(db.String(20))
+    account_number = db.Column(db.String(30))
+
+# ===== PROJECT MASTER =====
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     enquiry_id = db.Column(db.String(50), unique=True)
@@ -22,8 +47,9 @@ class Project(db.Model):
     drawing_filename = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    vendor = db.relationship('Vendor', backref='projects')
+    measurements = db.relationship('MeasurementEntry', backref='project', cascade="all, delete-orphan")
 
+# ===== MEASUREMENT ENTRY =====
 class MeasurementEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
@@ -50,5 +76,3 @@ class MeasurementEntry(db.Model):
     cleat = db.Column(db.Float)
     bolts = db.Column(db.Integer)
     corners = db.Column(db.Integer)
-
-    project = db.relationship('Project', backref='measurements')
