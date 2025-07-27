@@ -147,6 +147,87 @@ def get_vendor_details(vendor_id):
         return jsonify({'gst_number': vendor.gst_number, 'address': vendor.address})
     return jsonify({'error': 'Vendor not found'}), 404
 
+
+@app.route('/register_vendor', methods=['GET', 'POST'])
+def register_vendor():
+    if request.method == 'POST':
+        # Vendor main details
+        name = request.form.get('name')
+        gst_number = request.form.get('gst_number')
+        pan_number = request.form.get('pan_number')
+        address = request.form.get('address')
+
+        # Create vendor object
+        vendor = Vendor(name=name, gst_number=gst_number, pan_number=pan_number, address=address)
+        db.session.add(vendor)
+        db.session.commit()
+
+        # Communication details
+        contact_names = request.form.getlist('contact_name[]')
+        contact_designations = request.form.getlist('contact_designation[]')
+        contact_emails = request.form.getlist('contact_email[]')
+        contact_phones = request.form.getlist('contact_phone[]')
+
+        for name, desig, email, phone in zip(contact_names, contact_designations, contact_emails, contact_phones):
+            if name or desig or email or phone:  # Avoid saving empty rows
+                contact = VendorContact(
+                    vendor_id=vendor.id,
+                    name=name,
+                    designation=desig,
+                    email=email,
+                    phone=phone
+                )
+                db.session.add(contact)
+
+        # Bank details
+        account_holder = request.form.get('account_holder')
+        bank_name = request.form.get('bank_name')
+        branch = request.form.get('branch')
+        ifsc = request.form.get('ifsc')
+        account_number = request.form.get('account_number')
+
+        bank_detail = VendorBankDetail(
+            vendor_id=vendor.id,
+            account_holder=account_holder,
+            bank_name=bank_name,
+            branch=branch,
+            ifsc=ifsc,
+            account_number=account_number
+        )
+        db.session.add(bank_detail)
+
+        db.session.commit()
+        return redirect(url_for('dashboard'))  # or another success page
+
+    return render_template('register_vendor.html')
+
+
+
+@app.route('/seed_vendors')
+def seed_vendors():
+    if Vendor.query.first():  # Prevent re-seeding
+        return "Vendors already seeded."
+
+    vendor1 = Vendor(name="ABC Industries", gst_number="29ABCDE1234F1Z5", pan_number="ABCDE1234F", address="123, Industrial Layout, Bengaluru")
+    vendor2 = Vendor(name="XYZ Ducting Ltd.", gst_number="33XYZDE5678G1Z9", pan_number="XYZDE5678G", address="45, SIDCO Industrial Park, Chennai")
+
+    db.session.add_all([vendor1, vendor2])
+    db.session.commit()
+
+    # Vendor 1 contacts and bank
+    contact1 = VendorContact(vendor_id=vendor1.id, name="Ravi Kumar", designation="Manager", email="ravi@abc.com", phone="9876543210")
+    contact2 = VendorContact(vendor_id=vendor1.id, name="Sneha Patil", designation="Engineer", email="sneha@abc.com", phone="7890123456")
+    bank1 = VendorBankDetail(vendor_id=vendor1.id, account_holder="ABC Industries", bank_name="HDFC Bank", branch="Whitefield", ifsc="HDFC0001234", account_number="123456789012")
+
+    # Vendor 2 contacts and bank
+    contact3 = VendorContact(vendor_id=vendor2.id, name="Arun M", designation="Sales Head", email="arun@xyz.com", phone="9988776655")
+    bank2 = VendorBankDetail(vendor_id=vendor2.id, account_holder="XYZ Ducting Ltd.", bank_name="ICICI Bank", branch="T. Nagar", ifsc="ICIC0005678", account_number="987654321098")
+
+    db.session.add_all([contact1, contact2, contact3, bank1, bank2])
+    db.session.commit()
+
+    return "Dummy vendors seeded successfully."
+
 # -------------------- Init DB & Admin User --------------------
 
 with app.app_context():
