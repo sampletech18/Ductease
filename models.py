@@ -41,14 +41,21 @@ class VendorBank(db.Model):
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     enquiry_id = db.Column(db.String(50), unique=True)
-    client_name = db.Column(db.String(150))
-    site_location = db.Column(db.String(200))
+    name = db.Column(db.String(150))
+    location = db.Column(db.String(200))
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
     vendor_id = db.Column(db.Integer, db.ForeignKey('vendor.id'))
-    drawing_filename = db.Column(db.String(255))
+    gst_number = db.Column(db.String(20))
+    address = db.Column(db.String(255))
+    quotation = db.Column(db.String(255))
+    project_incharge = db.Column(db.String(150))
+    email = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    source_drawing = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    measurements = db.relationship('MeasurementEntry', backref='project', cascade="all, delete-orphan")
-
+    vendor = db.relationship('Vendor', backref='projects')
 # ===== MEASUREMENT ENTRY =====
 class MeasurementEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
