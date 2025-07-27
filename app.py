@@ -17,5 +17,6 @@ db = SQLAlchemy(app)
 # Import routes at the end to avoid circular imports
 from routes import *
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
