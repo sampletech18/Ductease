@@ -99,6 +99,53 @@ def measurement_sheet(project_id):
     entries = MeasurementEntry.query.filter_by(project_id=project.id).all()
     return render_template("measurement_sheet.html", project=project, entries=entries)
 
+
+@app.route("/register_vendor", methods=["GET", "POST"])
+def register_vendor():
+    if request.method == "POST":
+        # Vendor main info
+        name = request.form["vendor_name"]
+        gst = request.form["gst_number"]
+        pan = request.form["pan_number"]
+        address = request.form["address"]
+
+        vendor = Vendor(name=name, gst_number=gst, pan_number=pan, address=address)
+        db.session.add(vendor)
+        db.session.flush()  # Get vendor.id before committing
+
+        # Contacts (multiple)
+        names = request.form.getlist("contact_name[]")
+        designations = request.form.getlist("contact_designation[]")
+        emails = request.form.getlist("contact_email[]")
+        phones = request.form.getlist("contact_phone[]")
+
+        for i in range(len(names)):
+            contact = VendorContact(
+                vendor_id=vendor.id,
+                name=names[i],
+                designation=designations[i],
+                email=emails[i],
+                phone=phones[i]
+            )
+            db.session.add(contact)
+
+        # Bank details
+        bank = VendorBank(
+            vendor_id=vendor.id,
+            account_holder=request.form["account_holder"],
+            bank_name=request.form["bank_name"],
+            branch=request.form["branch"],
+            ifsc=request.form["ifsc"],
+            account_number=request.form["account_number"]
+        )
+        db.session.add(bank)
+
+        db.session.commit()
+        flash("Vendor registered successfully.")
+        return redirect("/register_vendor")
+
+    return render_template("register_vendor.html")
+
 # ========== LOGOUT ==========
 @app.route("/logout")
 def logout():
