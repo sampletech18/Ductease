@@ -1,0 +1,22 @@
+# Core Flask Packages
+Flask==2.3.2
+Flask-SQLAlchemy==3.1.1
+
+# PostgreSQL Connector
+psycopg2-binary==2.9.9
+
+# Utilities
+Werkzeug==2.3.7
+python-dotenv==1.0.1
+
+# Optional (if you're planning PDF/Excel export)
+openpyxl==3.1.2         # For Excel export
+reportlab==4.0.8         # For PDF export
+pandas==2.2.2            # For tabular data processing
+xlsxwriter==3.2.0        # Optional Excel writer engine
+
+# If using Flask-WTF for forms (optional)
+Flask-WTF==1.2.1
+
+# If using Flask-Migrate for DB upgrades (optional)
+Flask-Migrate==4.0.5
