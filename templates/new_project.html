@@ -4,100 +4,130 @@
   <meta charset="UTF-8">
   <title>New Project</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-</head>
-<body>
-  <div class="container mt-5">
-    <h3 class="mb-4">New Project</h3>
-    <form method="POST" enctype="multipart/form-data">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="name" class="form-label">Project Name</label>
-          <input type="text" name="name" id="name" class="form-control" required>
-        </div>
-        <div class="col-md-6">
-          <label for="location" class="form-label">Project Location</label>
-          <input type="text" name="location" id="location" class="form-control" required>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="start_date" class="form-label">Start Date</label>
-          <input type="date" name="start_date" id="start_date" class="form-control" required>
-        </div>
-        <div class="col-md-6">
-          <label for="end_date" class="form-label">End Date</label>
-          <input type="date" name="end_date" id="end_date" class="form-control" required>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="vendor_id" class="form-label">Vendor</label>
-          <select name="vendor_id" id="vendor_id" class="form-select" required>
-            <option value="">-- Select Vendor --</option>
-            {% for vendor in vendors %}
-            <option value="{{ vendor.id }}">{{ vendor.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label for="gst_number" class="form-label">GST Number</label>
-          <input type="text" name="gst_number" id="gst_number" class="form-control" readonly>
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label for="address" class="form-label">Vendor Address</label>
-        <textarea name="address" id="address" rows="2" class="form-control" readonly></textarea>
-      </div>
-
-      <div class="mb-3">
-        <label for="quotation" class="form-label">Quotation Reference</label>
-        <input type="text" name="quotation" id="quotation" class="form-control">
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <label for="project_incharge" class="form-label">Project Incharge</label>
-          <input type="text" name="project_incharge" id="project_incharge" class="form-control">
-        </div>
-        <div class="col-md-4">
-          <label for="email" class="form-label">Incharge Email</label>
-          <input type="email" name="email" id="email" class="form-control">
-        </div>
-        <div class="col-md-4">
-          <label for="phone" class="form-label">Incharge Phone</label>
-          <input type="text" name="phone" id="phone" class="form-control">
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label for="source_drawing" class="form-label">Upload Source Drawing</label>
-        <input type="file" name="source_drawing" id="source_drawing" class="form-control" accept=".dwg,.jpg,.jpeg,.png,.pdf">
-      </div>
-
-      <div class="text-end">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
-
   <script>
-    $('#vendor_id').on('change', function() {
-      const vendorId = $(this).val();
-      if (vendorId) {
-        $.get('/get_vendor_details/' + vendorId, function(data) {
-          $('#gst_number').val(data.gst_number);
-          $('#address').val(data.address);
-        });
-      } else {
-        $('#gst_number').val('');
-        $('#address').val('');
-      }
-    });
+    function fillVendorDetails() {
+      const vendorSelect = document.getElementById("vendor_id");
+      const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
+      const gst = selectedOption.getAttribute("data-gst");
+      const address = selectedOption.getAttribute("data-address");
+      document.getElementById("gst_number").value = gst || '';
+      document.getElementById("address").value = address || '';
+    }
   </script>
+</head>
+<body class="p-4">
+
+  <h2 class="mb-4">Create New Project</h2>
+  <form action="/new_project" method="POST" enctype="multipart/form-data">
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label>Project Name</label>
+        <input type="text" name="name" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label>Location</label>
+        <input type="text" name="location" class="form-control" required>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label>Start Date</label>
+        <input type="date" name="start_date" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label>End Date</label>
+        <input type="date" name="end_date" class="form-control" required>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label>Vendor</label>
+        <select name="vendor_id" id="vendor_id" class="form-select" onchange="fillVendorDetails()" required>
+          <option value="">-- Select Vendor --</option>
+          {% for vendor in vendors %}
+            <option value="{{ vendor.id }}" data-gst="{{ vendor.gst_number }}" data-address="{{ vendor.address }}">
+              {{ vendor.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label>GST Number</label>
+        <input type="text" name="gst_number" id="gst_number" class="form-control" readonly>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label>Address</label>
+      <textarea name="address" id="address" class="form-control" rows="2" readonly></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label>Quotation Reference</label>
+      <input type="text" name="quotation" class="form-control">
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label>Project In-Charge</label>
+        <input type="text" name="project_incharge" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label>Phone</label>
+        <input type="text" name="phone" class="form-control">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label>Source Drawing (AutoCAD/Image)</label>
+      <input type="file" name="source_drawing" class="form-control">
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+
+  <hr class="my-5">
+
+  <h4>Existing Projects</h4>
+  <table class="table table-bordered mt-3">
+    <thead>
+      <tr>
+        <th>Enquiry ID</th>
+        <th>Name</th>
+        <th>Location</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Vendor</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for project in projects %}
+        <tr>
+          <td>{{ project.enquiry_id }}</td>
+          <td>{{ project.name }}</td>
+          <td>{{ project.location }}</td>
+          <td>{{ project.start_date }}</td>
+          <td>{{ project.end_date }}</td>
+          <td>{{ project.vendor.name }}</td>
+          <td>
+            <a href="/edit_project/{{ project.id }}" class="btn btn-sm btn-warning">Edit</a>
+            <a href="/delete_project/{{ project.id }}" class="btn btn-sm btn-danger">Delete</a>
+            <a href="/measurement_sheet/{{ project.id }}" class="btn btn-sm btn-success">Add Measurement Sheet</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
 </body>
 </html>
