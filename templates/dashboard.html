@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ducting Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      display: flex;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .sidebar {
+      width: 250px;
+      background-color: #343a40;
+      color: #fff;
+      padding: 20px;
+    }
+    .sidebar h5 {
+      color: #ffc107;
+      margin-bottom: 15px;
+    }
+    .sidebar a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      margin: 6px 0;
+      padding-left: 10px;
+    }
+    .sidebar a:hover {
+      background-color: #495057;
+      border-radius: 5px;
+    }
+    .content {
+      flex-grow: 1;
+      padding: 20px;
+    }
+    .module-group {
+      margin-bottom: 25px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h4>Ducting App</h4>
+
+    <div class="module-group">
+      <h5>New Enquiry</h5>
+      <a href="/new_project">New Project</a>
+      <a href="#">Progress Table</a>
+      <a href="#">Summary</a>
+    </div>
+
+    <div class="module-group">
+      <h5>Production</h5>
+      <a href="#">Progress Table</a>
+      <a href="#">Sheet Cutting</a>
+      <a href="#">Fabrication</a>
+      <a href="#">Dispatch</a>
+      <a href="#">Summary</a>
+    </div>
+
+    <div class="module-group">
+      <h5>Registration</h5>
+      <a href="#">Employee Registration</a>
+      <a href="/register_vendor">Vendor Registration</a>
+    </div>
+
+    <div class="module-group">
+      <h5>Reports</h5>
+      <a href="#">Daily Reports</a>
+      <a href="#">Weekly Reports</a>
+      <a href="#">Monthly Reports</a>
+    </div>
+
+    <hr>
+    <a href="/logout" class="text-danger">Logout</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+    <h3>Welcome to Dashboard</h3>
+    <hr>
+    <h5>Project List</h5>
+    {% if projects %}
+      <table class="table table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Enquiry ID</th>
+            <th>Client Name</th>
+            <th>Site Location</th>
+            <th>Vendor</th>
+            <th>Drawing</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for project in projects %}
+          <tr>
+            <td>{{ project.enquiry_id }}</td>
+            <td>{{ project.client_name }}</td>
+            <td>{{ project.site_location }}</td>
+            <td>{{ project.vendor.name }}</td>
+            <td><a href="{{ url_for('static', filename='uploads/' + project.drawing_filename) }}" target="_blank">View</a></td>
+            <td><a href="/measurement_sheet/{{ project.id }}" class="btn btn-sm btn-primary">Add Sheet</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No projects available.</p>
+    {% endif %}
+  </div>
+
+</body>
+</html>
