@@ -2,24 +2,23 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
-import uuid
 
 app = Flask(__name__)
-app.secret_key = 'secretkey'
-
-# PostgreSQL on Render
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://duct_db_user:SXQ9iAKpluAXibt4xcxhakJk4uoQCFko@dpg-d2075pp5pdvs73c6q740-a.singapore-postgres.render.com/duct_db"
+app.secret_key = 'secret'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://duct_db_user:SXQ9iAKpluAXibt4xcxhakJk4uoQCFko@dpg-d2075pp5pdvs73c6q740-a.singapore-postgres.render.com/duct_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+UPLOAD_FOLDER = os.path.join("static", "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 
-# --------------------- MODELS ---------------------
+# Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(50))
+    username = db.Column(db.String(80), unique=True)
+    password = db.Column(db.String(80))
 
 class Vendor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -27,9 +26,23 @@ class Vendor(db.Model):
     gst_number = db.Column(db.String(20))
     address = db.Column(db.String(200))
 
+class VendorContact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendor.id'))
+    name = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(100))
+
+class VendorBankDetail(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendor.id'))
+    bank_name = db.Column(db.String(100))
+    acc_no = db.Column(db.String(50))
+    ifsc = db.Column(db.String(20))
+
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    enquiry_id = db.Column(db.String(20), unique=True)
+    enquiry_id = db.Column(db.String(50), unique=True)
     name = db.Column(db.String(100))
     location = db.Column(db.String(100))
     start_date = db.Column(db.String(20))
@@ -47,7 +60,7 @@ class MeasurementSheet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
     duct_no = db.Column(db.String(50))
-    type = db.Column(db.String(50))
+    type = db.Column(db.String(20))
     st = db.Column(db.String(10))
     elb = db.Column(db.String(10))
     red = db.Column(db.String(10))
@@ -63,29 +76,31 @@ class MeasurementSheet(db.Model):
     length = db.Column(db.Float)
     quantity = db.Column(db.Integer)
     factor = db.Column(db.Float)
-    area = db.Column(db.Float)
-    gauge = db.Column(db.String(10))
-    gasket = db.Column(db.Float)
-    cleat = db.Column(db.Float)
-    bolts = db.Column(db.Float)
-    corner = db.Column(db.Float)
 
-# --------------------- ROUTES ---------------------
+@app.before_first_request
+def seed_admin():
+    if not User.query.filter_by(username='admin').first():
+        db.session.add(User(username='admin', password='admin123'))
+        db.session.commit()
+
 @app.route('/')
-def home():
+def index():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        uname = request.form['username']
-        pwd = request.form['password']
-        user = User.query.filter_by(username=uname, password=pwd).first()
+        user = User.query.filter_by(username=request.form['username'], password=request.form['password']).first()
         if user:
-            session['user'] = uname
+            session['user_id'] = user.id
             return redirect(url_for('dashboard'))
-        return "Invalid credentials"
+        return render_template('login.html', error="Invalid credentials")
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 def dashboard():
@@ -94,105 +109,68 @@ def dashboard():
 @app.route('/register_vendor', methods=['GET', 'POST'])
 def register_vendor():
     if request.method == 'POST':
-        name = request.form['name']
-        gst = request.form['gst_number']
-        addr = request.form['address']
-        vendor = Vendor(name=name, gst_number=gst, address=addr)
+        vendor = Vendor(name=request.form['name'], gst_number=request.form['gst'], address=request.form['address'])
         db.session.add(vendor)
         db.session.commit()
-        return redirect(url_for('register_vendor'))
+
+        for name, phone, email in zip(request.form.getlist('contact_name'), request.form.getlist('contact_phone'), request.form.getlist('contact_email')):
+            db.session.add(VendorContact(vendor_id=vendor.id, name=name, phone=phone, email=email))
+
+        for bank, acc, ifsc in zip(request.form.getlist('bank_name'), request.form.getlist('acc_no'), request.form.getlist('ifsc_code')):
+            db.session.add(VendorBankDetail(vendor_id=vendor.id, bank_name=bank, acc_no=acc, ifsc=ifsc))
+
+        db.session.commit()
+        return redirect(url_for('dashboard'))
+    return render_template('register_vendor.html')
+
+def generate_enquiry_id():
+    year = datetime.now().year
+    count = Project.query.count() + 1
+    return f"VE/TN/{year}/E{str(count).zfill(3)}"
+
+@app.route('/new_project', methods=['GET', 'POST'])
+def new_project():
     vendors = Vendor.query.all()
-    return render_template('register_vendor.html', vendors=vendors)
+    if request.method == 'POST':
+        file = request.files['source_drawing']
+        filename = file.filename
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        project = Project(
+            enquiry_id=generate_enquiry_id(),
+            name=request.form['name'],
+            location=request.form['location'],
+            start_date=request.form['start_date'],
+            end_date=request.form['end_date'],
+            vendor_id=request.form['vendor_id'],
+            gst_number=request.form['gst_number'],
+            address=request.form['address'],
+            quotation=request.form['quotation'],
+            project_incharge=request.form['project_incharge'],
+            email=request.form['email'],
+            phone=request.form['phone'],
+            source_drawing=filename
+        )
+        db.session.add(project)
+        db.session.commit()
+        return redirect(url_for('dashboard'))
+    return render_template('new_project.html', vendors=vendors, enquiry_id=generate_enquiry_id())
 
 @app.route('/get_vendor_details/<int:vendor_id>')
 def get_vendor_details(vendor_id):
     vendor = Vendor.query.get(vendor_id)
-    if vendor:
-        return jsonify({'gst_number': vendor.gst_number, 'address': vendor.address})
-    return jsonify({})
-
-def generate_enquiry_id():
-    last = Project.query.order_by(Project.id.desc()).first()
-    if last and last.enquiry_id:
-        last_num = int(last.enquiry_id.split("/")[-1][1:])
-    else:
-        last_num = 0
-    new_num = str(last_num + 1).zfill(3)
-    return f"VE/TN/2526/E{new_num}"
-
-@app.route('/new_project', methods=['GET', 'POST'])
-def new_project():
-    if request.method == 'POST':
-        data = request.form
-        file = request.files['source_drawing']
-        filename = f"{uuid.uuid4().hex}_{file.filename}"
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        proj = Project(
-            enquiry_id=data['enquiry_id'],
-            name=data['name'],
-            location=data['location'],
-            start_date=data['start_date'],
-            end_date=data['end_date'],
-            vendor_id=data['vendor_id'],
-            gst_number=data['gst_number'],
-            address=data['address'],
-            quotation=data['quotation'],
-            project_incharge=data['project_incharge'],
-            email=data['email'],
-            phone=data['phone'],
-            source_drawing=filename
-        )
-        db.session.add(proj)
-        db.session.commit()
-        return redirect(url_for('dashboard'))
-    vendors = Vendor.query.all()
-    enquiry_id = generate_enquiry_id()
-    return render_template('new_project.html', vendors=vendors, enquiry_id=enquiry_id)
+    return jsonify({'gst': vendor.gst_number, 'address': vendor.address})
 
 @app.route('/measurement_sheet/<int:project_id>', methods=['GET', 'POST'])
 def measurement_sheet(project_id):
-    project = Project.query.get(project_id)
-    if not project:
-        return "Project not found"
     if request.method == 'POST':
-        data = request.get_json()
-        for row in data:
-            entry = MeasurementSheet(
-                project_id=project_id,
-                duct_no=row['duct_no'],
-                type=row['type'],
-                st=row.get('st'),
-                elb=row.get('elb'),
-                red=row.get('red'),
-                vanes=row.get('vanes'),
-                dm=row.get('dm'),
-                offset=row.get('offset'),
-                shoe=row.get('shoe'),
-                w1=row['w1'],
-                h1=row['h1'],
-                w2=row['w2'],
-                h2=row['h2'],
-                degree=row['degree'],
-                length=row['length'],
-                quantity=row['quantity'],
-                factor=row['factor'],
-                area=row['area'],
-                gauge=row['gauge'],
-                gasket=row['gasket'],
-                cleat=row['cleat'],
-                bolts=row['bolts'],
-                corner=row['corner']
-            )
-            db.session.add(entry)
+        data = request.json
+        for entry in data['entries']:
+            ms = MeasurementSheet(project_id=project_id, **entry)
+            db.session.add(ms)
         db.session.commit()
         return jsonify({'status': 'success'})
-    return render_template('measurement_sheet.html', project=project)
+    return render_template('measurement_sheet.html', project_id=project_id)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-# ------------------- DB CREATE -------------------
-with app.app_context():
-    db.create_all()
+if __name__ == '__main__':
+    app.run()
