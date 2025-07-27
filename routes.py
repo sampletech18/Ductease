@@ -31,36 +31,62 @@ def dashboard():
     return render_template("dashboard.html", projects=projects)
 
 # ========== NEW PROJECT ==========
-@app.route("/new_project", methods=["GET", "POST"])
+@app.route('/new_project', methods=['GET', 'POST'])
 def new_project():
-    if "user_id" not in session:
-        return redirect("/")
-
-    vendors = Vendor.query.all()
-
-    if request.method == "POST":
+    if request.method == 'POST':
         enquiry_id = generate_enquiry_id()
-        client_name = request.form["client_name"]
-        site_location = request.form["site_location"]
-        vendor_id = request.form["vendor_id"]
-        drawing_file = request.files["drawing"]
-
-        filename = secure_filename(drawing_file.filename)
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        drawing_file.save(filepath)
+        name = request.form['name']
+        location = request.form['location']
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        vendor_id = request.form['vendor_id']
+        gst_number = request.form['gst_number']
+        address = request.form['address']
+        quotation = request.form['quotation']
+        project_incharge = request.form['project_incharge']
+        email = request.form['email']
+        phone = request.form['phone']
+        
+        drawing_file = request.files['source_drawing']
+        drawing_filename = None
+        if drawing_file and drawing_file.filename:
+            drawing_filename = f"{datetime.utcnow().timestamp()}_{drawing_file.filename}"
+            drawing_file.save(os.path.join(app.config['UPLOAD_FOLDER'], drawing_filename))
 
         new_project = Project(
             enquiry_id=enquiry_id,
-            client_name=client_name,
-            site_location=site_location,
+            name=name,
+            location=location,
+            start_date=start_date,
+            end_date=end_date,
             vendor_id=vendor_id,
-            drawing_filename=filename
+            gst_number=gst_number,
+            address=address,
+            quotation=quotation,
+            project_incharge=project_incharge,
+            email=email,
+            phone=phone,
+            source_drawing=drawing_filename
         )
         db.session.add(new_project)
         db.session.commit()
-        return redirect("/dashboard")
+        flash('New project created successfully!', 'success')
+        return redirect(url_for('dashboard'))
 
-    return render_template("new_project.html", vendors=vendors)
+    vendors = Vendor.query.all()
+    return render_template('new_project.html', vendors=vendors)
+
+
+@app.route('/get_vendor_details/<int:vendor_id>')
+def get_vendor_details(vendor_id):
+    vendor = Vendor.query.get(vendor_id)
+    if vendor:
+        return jsonify({
+            'gst_number': vendor.gst_number,
+            'address': vendor.address
+        })
+    return jsonify({'gst_number': '', 'address': ''})
+
 
 # ========== MEASUREMENT SHEET ==========
 @app.route("/measurement_sheet/<int:project_id>", methods=["GET", "POST"])
