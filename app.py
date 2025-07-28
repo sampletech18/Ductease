@@ -249,6 +249,51 @@ def seed_vendors():
 
     return "Dummy vendors seeded successfully."
 
+
+@app.route('/debug_seed')
+def debug_seed():
+    from your_model_file import User  # replace with actual model import if needed
+    if not User.query.filter_by(username='admin').first():
+        user = User(username='admin', password='admin123')
+        db.session.add(user)
+        db.session.commit()
+        return "Admin user created."
+    return "Admin user already exists."
+
+
+@app.route('/reset_db')
+def reset_db():
+    try:
+        db.drop_all()
+        db.create_all()
+
+        # Dummy admin user
+        if not User.query.filter_by(username='admin').first():
+            admin_user = User(username='admin', password='admin123')
+            db.session.add(admin_user)
+
+        # Dummy vendors
+        vendor1 = Vendor(
+            name="ABC Industries",
+            gst_number="27ABC1234Z1",
+            pan_number="ABCDE1234F",
+            address="Chennai Industrial Estate"
+        )
+        vendor1_contact = VendorContact(
+            name="Raj Kumar", designation="Manager", email="raj@abc.com", phone="9876543210"
+        )
+        vendor1.contacts.append(vendor1_contact)
+        vendor1.bank_detail = BankDetail(
+            account_holder="ABC Industries",
+            bank_name="SBI", branch="Chennai", ifsc="SBIN0001234", account_number="1234567890"
+        )
+
+        db.session.add(vendor1)
+        db.session.commit()
+        return "✅ Database reset and dummy data created!"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
 # -------------------- Init DB & Admin User --------------------
 
 if __name__ == '__main__':
