@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime
 from sqlalchemy import text
+from flask import redirect, url_for
 
 
 app = Flask(__name__)
@@ -225,71 +226,29 @@ def register_vendor():
     return render_template('register_vendor.html')
 
 
-
-@app.route('/seed_vendors')
-def seed_vendors():
-    if Vendor.query.first():  # Prevent re-seeding
-        return "Vendors already seeded."
-
-    vendor1 = Vendor(name="ABC Industries", gst_number="29ABCDE1234F1Z5", pan_number="ABCDE1234F", address="123, Industrial Layout, Bengaluru")
-    vendor2 = Vendor(name="XYZ Ducting Ltd.", gst_number="33XYZDE5678G1Z9", pan_number="XYZDE5678G", address="45, SIDCO Industrial Park, Chennai")
-
-    db.session.add_all([vendor1, vendor2])
-    db.session.commit()
-
-    # Vendor 1 contacts and bank
-    contact1 = VendorContact(vendor_id=vendor1.id, name="Ravi Kumar", designation="Manager", email="ravi@abc.com", phone="9876543210")
-    contact2 = VendorContact(vendor_id=vendor1.id, name="Sneha Patil", designation="Engineer", email="sneha@abc.com", phone="7890123456")
-    bank1 = VendorBankDetail(vendor_id=vendor1.id, account_holder="ABC Industries", bank_name="HDFC Bank", branch="Whitefield", ifsc="HDFC0001234", account_number="123456789012")
-
-    # Vendor 2 contacts and bank
-    contact3 = VendorContact(vendor_id=vendor2.id, name="Arun M", designation="Sales Head", email="arun@xyz.com", phone="9988776655")
-    bank2 = VendorBankDetail(vendor_id=vendor2.id, account_holder="XYZ Ducting Ltd.", bank_name="ICICI Bank", branch="T. Nagar", ifsc="ICIC0005678", account_number="987654321098")
-
-    db.session.add_all([contact1, contact2, contact3, bank1, bank2])
+ bank2])
     db.session.commit()
 
     return "Dummy vendors seeded successfully."
 
 
-@app.route('/debug_seed')
-def debug_seed():
-    from your_model_file import User  # replace with actual model import if needed
-    if not User.query.filter_by(username='admin').first():
-        user = User(username='admin', password='admin123')
-        db.session.add(user)
-        db.session.commit()
-        return "Admin user created."
-    return "Admin user already exists."
-
-
 @app.route('/reset_db')
 def reset_db():
     try:
-        # Manually drop problematic tables
-        db.session.execute('DROP TABLE IF EXISTS measurement_entry CASCADE')
-        db.session.execute('DROP TABLE IF EXISTS project CASCADE')
+        db.session.execute(text('DROP TABLE IF EXISTS measurement_entry CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS project CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS vendor_contact CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS bank_detail CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS vendor CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS user CASCADE'))
+        db.session.commit()
+        return "✅ All specified tables dropped."
     except Exception as e:
-        return f"❌ Error during manual drop: {e}"
+        db.session.rollback()
+        return f"❌ Error: {e}"
 
-    db.drop_all()
-    db.create_all()
 
-    # Seed dummy user
-    if not User.query.filter_by(username='admin').first():
-        db.session.add(User(username='admin', password='admin123'))
 
-    # Seed dummy vendor
-    if not Vendor.query.filter_by(name='Dummy Vendor').first():
-        db.session.add(Vendor(
-            name="Dummy Vendor",
-            gst_number="GST1234567",
-            pan_number="PAN1234567",
-            address="123 Dummy Street"
-        ))
-
-    db.session.commit()
-    return "✅ Database reset and dummy data inserted!"
 
 # -------------------- Init DB & Admin User --------------------
 
