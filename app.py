@@ -229,6 +229,8 @@ def register_vendor():
  
 
 
+
+
 @app.route('/reset_db')
 def reset_db():
     try:
@@ -237,7 +239,7 @@ def reset_db():
         db.session.execute(text('DROP TABLE IF EXISTS vendor_contact CASCADE'))
         db.session.execute(text('DROP TABLE IF EXISTS bank_detail CASCADE'))
         db.session.execute(text('DROP TABLE IF EXISTS vendor CASCADE'))
-        db.session.execute(text('DROP TABLE IF EXISTS user CASCADE'))
+        db.session.execute(text('DROP TABLE IF EXISTS "user" CASCADE'))  # <- FIXED HERE
         db.session.commit()
         return "✅ All specified tables dropped."
     except Exception as e:
