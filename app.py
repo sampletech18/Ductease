@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime
+from sqlalchemy import text
 
 
 app = Flask(__name__)
