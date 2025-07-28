@@ -251,14 +251,15 @@ def seed_vendors():
 
 # -------------------- Init DB & Admin User --------------------
 
-with app.app_context():
-    db.create_all()
-    if not User.query.filter_by(username='admin').first():
-        admin = User(username='admin', password='admin123')  # plain-text dummy login
-        db.session.add(admin)
-        db.session.commit()
-
-# -------------------- Run --------------------
-
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+
+        # Add dummy admin user if not exists
+        if not User.query.filter_by(username='admin').first():
+            admin = User(username='admin', password='admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("Dummy admin user created.")
+
     app.run(debug=True)
