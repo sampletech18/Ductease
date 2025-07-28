@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime
-from models import db, User, Vendor  # adjust based on your structure
 
 
 app = Flask(__name__)
