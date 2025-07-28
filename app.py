@@ -204,21 +204,22 @@ def register_vendor():
                 db.session.add(contact)
 
         # Bank details
-        account_holder = request.form.get('account_holder')
-        bank_name = request.form.get('bank_name')
-        branch = request.form.get('branch')
-        ifsc = request.form.get('ifsc')
-        account_number = request.form.get('account_number')
+        # Bank details
+account_holder = request.form.get('account_holder')
+bank_name = request.form.get('bank_name')
+branch = request.form.get('branch')
+ifsc = request.form.get('ifsc')
+account_number = request.form.get('account_number')
 
-        bank_detail = VendorBankDetail(
-            vendor_id=vendor.id,
-            account_holder=account_holder,
-            bank_name=bank_name,
-            branch=branch,
-            ifsc=ifsc,
-            account_number=account_number
-        )
-        db.session.add(bank_detail)
+bank_detail = BankDetail(
+    vendor_id=vendor.id,
+    account_holder=account_holder,
+    bank_name=bank_name,
+    branch=branch,
+    ifsc=ifsc,
+    account_number=account_number
+)
+db.session.add(bank_detail)
 
         db.session.commit()
         return redirect(url_for('dashboard'))  # or another success page
