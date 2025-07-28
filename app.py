@@ -226,10 +226,7 @@ def register_vendor():
     return render_template('register_vendor.html')
 
 
- bank2])
-    db.session.commit()
-
-    return "Dummy vendors seeded successfully."
+ 
 
 
 @app.route('/reset_db')
